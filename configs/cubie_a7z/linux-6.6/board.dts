@@ -15,6 +15,20 @@
 		phy_switcher = &phy_switcher;
 	};
 
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		ramoops@43f00000 {
+			compatible = "ramoops";
+			reg = <0x0 0x43f00000 0x0 0x00100000>;
+			record-size = <0x20000>;
+			console-size = <0x20000>;
+			pmsg-size = <0x20000>;
+		};
+	};
+
 	standby_param: standby_param {
 		vdd-sys = <0x00000002 0x00000000>;
 		vdd-cpub = <0x00000004 0x00000000>;
@@ -79,8 +93,7 @@
 		led-0 {
 			label = "radxa:green:user";
 			gpios = <&r_pio PM 2 GPIO_ACTIVE_HIGH>;
-			default-state = "on";
-			linux,default-trigger = "heartbeat";
+			default-state = "off";
 		};
 	};
 
@@ -258,13 +271,13 @@
 	};
 
 	uart3_pins_active: uart3_pins@0 {
-		pins = "PI1", "PI12";
+		pins = "PJ22", "PJ23";
 		function = "uart3";
 		drive-strength = <10>;
 	};
 
 	uart3_pins_sleep: uart3_pins@1 {
-		pins = "PI11", "PI12";
+		pins = "PJ22", "PJ23";
 		function = "io_disabled";
 		drive-strength = <10>;
 	};
@@ -389,14 +402,38 @@
 		function = "gpio_in";
 	};
 
-	twi7_pins_default: twi4@0 {
+	twi3_pins_default: twi3@0 {
+		pins = "PE3", "PE4";
+		function = "twi3";
+		drive-strength = <10>;
+		bias-pull-up;
+	};
+
+	twi3_pins_sleep: twi3@1 {
+		pins = "PE3", "PE4";
+		function = "gpio_in";
+	};
+
+	twi4_pins_default: twi4@0 {
+		pins = "PE10", "PE11";
+		function = "twi4";
+		drive-strength = <10>;
+		bias-pull-up;
+	};
+
+	twi4_pins_sleep: twi4@1 {
+		pins = "PE10", "PE11";
+		function = "gpio_in";
+	};
+
+	twi7_pins_default: twi7@0 {
 		pins = "PJ22", "PJ23";
 		function = "twi7";
 		drive-strength = <10>;
 		bias-pull-up;
 	};
 
-	twi7_pins_sleep: twi4@1 {
+	twi7_pins_sleep: twi7@1 {
 		pins = "PJ22", "PJ23";
 		function = "gpio_in";
 	};
@@ -449,8 +486,9 @@
 		bias-pull-down;
 	};
 
+	/* Sleep / unused: BCLK+LRCK+DIN only (no MCLK/DOUT for MEMS mic) */
 	i2s0_pins_f: i2s0@5 {
-		pins = "PB4", "PB5", "PB6", "PB7", "PB8";
+		pins = "PB5", "PB6", "PB8";
 		function = "io_disabled";
 		allwinner,drive = <1>;
 		bias-disable;
@@ -765,14 +803,16 @@
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&uart2_pins_active>;
 	pinctrl-1 = <&uart2_pins_sleep>;
-	status = "disabled";
+	clocks = <&ccu CLK_UART2>, <&ccu CLK_APB_UART>, <&ccu CLK_PLL_PERI0_600M>;
+	clock-frequency = <40000000>;
+	status = "okay";
 };
 
 &uart3 {
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&uart3_pins_active>;
 	pinctrl-1 = <&uart3_pins_sleep>;
-	status = "disabled";
+	status = "okay";
 };
 
 &uart5 {
@@ -1031,26 +1071,17 @@
 
 &usbc2 {
 	device_type = "usbc2";
+	drvvbus-supply = <&reg_usb2_vbus>;
 	status = "okay";
 };
 
 &xhci2 {
-	dr_mode = "otg"; //dr_mode option: host, peripheral, otg
-	role-switch-default-mode = "host";
+	dr_mode = "host"; //dr_mode option: host, peripheral, otg
 	phy-names = "usb2-phy", "usb3-phy";
 	status = "okay";
 
 #ifdef TYPEC_DP
 	phys = <&u2phy>, <&combo0_usb>;
-	usb-role-switch;
-	port {
-		#address-cells = <1>;
-		#size-cells = <0>;
-		dwc3_0_role_switch: endpoint@0 {
-			reg = <0>;
-			remote-endpoint = <&usbc2_role_sw>;
-		};
-	};
 #else
 	phys = <&u2phy>, <&combo1_usb>;
 #endif
@@ -1687,20 +1718,6 @@
 		wakeup-source;
 		status = "okay";
 
-#ifdef TYPEC_DP
-		ports {
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			port@0 {
-				reg = <0>;
-				usbc2_role_sw: endpoint@0 {
-					remote-endpoint = <&dwc3_0_role_switch>;
-				};
-			};
-		};
-#endif
-
 		usb_con: connector {
 			compatible = "usb-c-connector";
 			label = "USB-C";
@@ -1885,6 +1902,14 @@
 	status = "okay";
 };
 
+&gmac0 {
+	status = "disabled";
+};
+
+&gmac1 {
+	status = "disabled";
+};
+
 &addr_mgt {
 	compatible     = "allwinner,sunxi-addr_mgt";
 	type_addr_wifi = <0x0>;
@@ -1896,6 +1921,44 @@
 &hdmi_codec {
 	extcon = <&hdmi0>;
 	status = "okay";
+};
+
+/*
+ * I2S0 capture for ICS-43434 / INMP441 on 40-pin header:
+ * Pin1 3V3, Pin9/GND, Pin12 BCLK(PB5), Pin35 LRCK(PB6), Pin38 DIN(PB8).
+ * Empty codec → sunxi falls back to snd-soc-dummy (these mics have no control bus).
+ * Do not use sound-dai = <&ics43432>: unbound OF codecs cause infinite EPROBE_DEFER.
+ */
+&i2s0_plat {
+	tdm-num		= <0>;
+	rx-pin		= <0>;
+	pinctrl-used;
+	pinctrl-names	= "default", "sleep";
+	pinctrl-0	= <&i2s0_pins_b &i2s0_pins_c &i2s0_pins_d>;
+	pinctrl-1	= <&i2s0_pins_f>;
+	rx-sync-en;
+	status		= "okay";
+};
+
+&i2s0_mach {
+	soundcard-mach,format		= "i2s";
+	soundcard-mach,frame-master	= <&i2s0_cpu>;
+	soundcard-mach,bitclock-master	= <&i2s0_cpu>;
+	soundcard-mach,name		= "ics43434-mic";
+	soundcard-mach,slot-num		= <2>;
+	soundcard-mach,slot-width	= <32>;
+	soundcard-mach,capture-only;
+	status				= "okay";
+
+	i2s0_cpu: soundcard-mach,cpu {
+		sound-dai = <&i2s0_plat>;
+		soundcard-mach,pll-fs	= <1>;
+		/* Mic needs no external MCLK; clocks from BCLK/LRCK */
+		soundcard-mach,mclk-fs	= <0>;
+	};
+
+	i2s0_codec: soundcard-mach,codec {
+	};
 };
 
 &i2s3_plat {
@@ -1986,8 +2049,17 @@
 	voltage = <1800>;
 };
 
+/* Waveshare IMX415-98 on CAM2 via Radxa AC020 (31P→22P) */
 &vind0 {
-	status = "disabled";
+	csi_top = <704000000>;
+	csi_isp = <704000000>;
+	vind_mclkpin-supply = <&reg_bldo1>;
+	vind_mclkpin_vol = <1800000>;
+	vind_mcsipin-supply = <&reg_bldo1>;
+	vind_mcsipin_vol = <1800000>;
+	vind_mipipin-supply = <&reg_bldo1>;
+	vind_mipipin_vol = <1800000>;
+	status = "okay";
 };
 
 &csi0 {
@@ -1995,7 +2067,9 @@
 };
 
 &csi1 {
-	status = "disabled";
+	status = "okay";
+	pinctrl-0 = <>;
+	pinctrl-1 = <>;
 };
 
 &csi2 {
@@ -2007,7 +2081,9 @@
 };
 
 &mipi1 {
-	status = "disabled";
+	status = "okay";
+	pinctrl-0 = <>;
+	pinctrl-1 = <>;
 };
 
 &mipi2 {
@@ -2015,15 +2091,17 @@
 };
 
 &tdm0 {
-	status = "disabled";
+	work_mode = <1>;
+	status = "okay";
 };
 
 &isp00 {
-	status = "disabled";
+	work_mode = <1>;
+	status = "okay";
 };
 
 &isp01 {
-	status = "disabled";
+	status = "okay";
 };
 
 &isp02 {
@@ -2047,11 +2125,12 @@
 };
 
 &scaler00 {
-	status = "disabled";
+	work_mode = <1>;
+	status = "okay";
 };
 
 &scaler01 {
-	status = "disabled";
+	status = "okay";
 };
 
 &scaler02 {
@@ -2063,15 +2142,22 @@
 };
 
 &scaler10 {
-	status = "disabled";
+	work_mode = <1>;
+	status = "okay";
+};
+
+&scaler11 {
+	status = "okay";
 };
 
 &scaler20 {
-	status = "disabled";
+	work_mode = <1>;
+	status = "okay";
 };
 
 &scaler30 {
-	status = "disabled";
+	work_mode = <1>;
+	status = "okay";
 };
 
 &scaler40 {
@@ -2091,7 +2177,29 @@
 };
 
 &sensor0 {
-	status = "disabled";
+	/* Waveshare IMX415-98 IR-CUT: 7-bit 0x37 (not Radxa Camera 4K 0x1a) */
+	device_type = "sensor0";
+	sensor0_mname = "imx415_mipi";
+	sensor0_twi_addr = <0x6e>; /* 8-bit write addr; 7-bit 0x37 */
+	sensor0_twi_cci_id = <3>; /* TWI3 on PE3/PE4 — CSI connector I2C */
+	sensor0_mclk_id = <1>;
+	sensor0_pos = "front";
+	sensor0_isp_used = <1>;
+	sensor0_fmt = <1>;
+	sensor0_stby_mode = <0>;
+	sensor0_vflip = <0>;
+	sensor0_hflip = <0>;
+	sensor0_cameravdd-supply = <&reg_dldo3>;
+	sensor0_cameravdd_vol = <3300000>; /* RPi-style 22-pin CSI 3.3V */
+	sensor0_iovdd-supply = <&reg_bldo1>;
+	sensor0_iovdd_vol = <1800000>;
+	sensor0_avdd-supply = <&reg_aldo2>;
+	sensor0_avdd_vol = <2800000>;
+	sensor0_dvdd-supply = <&reg_eldo4>;
+	sensor0_dvdd_vol = <1200000>;
+	sensor0_reset = <&pio PE 9 GPIO_ACTIVE_LOW>;
+	sensor0_pwdn = <&pio PE 8 GPIO_ACTIVE_HIGH>;
+	status = "okay";
 };
 
 &sensor1 {
@@ -2111,11 +2219,30 @@
 };
 
 &vinc00 {
-	status = "disabled";
+	vinc0_csi_sel = <1>;
+	vinc0_mipi_sel = <1>;
+	vinc0_isp_sel = <0>;
+	vinc0_isp_tx_ch = <0>;
+	vinc0_tdm_rx_sel = <0>;
+	vinc0_rear_sensor_sel = <0>;
+	vinc0_front_sensor_sel = <0>;
+	vinc0_sensor_list = <0>;
+	device_id = <0>;
+	work_mode = <0x1>;
+	status = "okay";
 };
 
 &vinc01 {
-	status = "disabled";
+	vinc1_csi_sel = <1>;
+	vinc1_mipi_sel = <1>;
+	vinc1_isp_sel = <1>;
+	vinc1_isp_tx_ch = <0>;
+	vinc1_tdm_rx_sel = <1>;
+	vinc1_rear_sensor_sel = <0>;
+	vinc1_front_sensor_sel = <0>;
+	vinc1_sensor_list = <0>;
+	device_id = <1>;
+	status = "okay";
 };
 
 &vinc02 {
@@ -2127,11 +2254,56 @@
 };
 
 &vinc10 {
-	status = "disabled";
+	vinc4_csi_sel = <1>;
+	vinc4_mipi_sel = <1>;
+	vinc4_isp_sel = <0>;
+	vinc4_isp_tx_ch = <0>;
+	vinc4_tdm_rx_sel = <0>;
+	vinc4_rear_sensor_sel = <0>;
+	vinc4_front_sensor_sel = <0>;
+	vinc4_sensor_list = <0>;
+	device_id = <4>;
+	work_mode = <1>;
+	status = "okay";
 };
 
 &vinc11 {
+	vinc5_csi_sel = <1>;
+	vinc5_mipi_sel = <1>;
+	vinc5_isp_sel = <1>;
+	vinc5_isp_tx_ch = <0>;
+	vinc5_tdm_rx_sel = <1>;
+	vinc5_rear_sensor_sel = <0>;
+	vinc5_front_sensor_sel = <0>;
+	vinc5_sensor_list = <0>;
+	device_id = <5>;
+	status = "okay";
+};
+
+&twi3 {
+	clock-frequency = <400000>;
+	pinctrl-0 = <&twi3_pins_default>;
+	pinctrl-1 = <&twi3_pins_sleep>;
+	pinctrl-names = "default", "sleep";
+	twi_drv_used = <1>;
+	no_suspend = <1>;
+	twi-supply = <&reg_bldo1>;
+	status = "okay";
+};
+
+&twi4 {
 	status = "disabled";
+};
+
+/* 40-pin header I2C: PJ22 (SCL) / PJ23 (SDA) → /dev/i2c-7 */
+&twi7 {
+	clock-frequency = <400000>;
+	pinctrl-0 = <&twi7_pins_default>;
+	pinctrl-1 = <&twi7_pins_sleep>;
+	pinctrl-names = "default", "sleep";
+	twi_drv_used = <1>;
+	no_suspend = <1>;
+	status = "okay";
 };
 
 &vinc12 {

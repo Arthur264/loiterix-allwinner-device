@@ -1870,6 +1870,14 @@
 	status = "okay";
 };
 
+&gmac0 {
+	status = "disabled";
+};
+
+&gmac1 {
+	status = "disabled";
+};
+
 &addr_mgt {
 	compatible     = "allwinner,sunxi-addr_mgt";
 	type_addr_wifi = <0x0>;
