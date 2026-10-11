@@ -808,6 +808,10 @@
 	status = "okay";
 };
 
+/*
+ * UART3 on PJ22/PJ23 (header pins 5/3). Conflicts with &twi7 on the same pins —
+ * keep twi7 disabled while UART3 is enabled.
+ */
 &uart3 {
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&uart3_pins_active>;
@@ -1924,10 +1928,11 @@
 };
 
 /*
- * I2S0 capture for ICS-43434 / INMP441 on 40-pin header:
+ * I2S0 capture for ICS-43434 / INMP441 on 40-pin header (NOT I2C):
  * Pin1 3V3, Pin9/GND, Pin12 BCLK(PB5), Pin35 LRCK(PB6), Pin38 DIN(PB8).
  * Empty codec → sunxi falls back to snd-soc-dummy (these mics have no control bus).
- * Do not use sound-dai = <&ics43432>: unbound OF codecs cause infinite EPROBE_DEFER.
+ * Do not use sound-dai = <&ics43432>: unbound OF codecs cause infinite EPROBE_DEFER
+ * and boot RCU stalls (see debian changelog 6.6.98-23).
  */
 &i2s0_plat {
 	tdm-num		= <0>;
@@ -1957,6 +1962,7 @@
 		soundcard-mach,mclk-fs	= <0>;
 	};
 
+	/* Intentionally empty: no sound-dai phandle → snd-soc-dummy */
 	i2s0_codec: soundcard-mach,codec {
 	};
 };
@@ -2295,7 +2301,10 @@
 	status = "disabled";
 };
 
-/* 40-pin header I2C: PJ22 (SCL) / PJ23 (SDA) → /dev/i2c-7 */
+/*
+ * 40-pin header I2C would be PJ22/PJ23 → /dev/i2c-7, but those pins are owned
+ * by &uart3. Enabling both causes pinctrl conflicts and flaky bus traffic.
+ */
 &twi7 {
 	clock-frequency = <400000>;
 	pinctrl-0 = <&twi7_pins_default>;
@@ -2303,7 +2312,7 @@
 	pinctrl-names = "default", "sleep";
 	twi_drv_used = <1>;
 	no_suspend = <1>;
-	status = "okay";
+	status = "disabled";
 };
 
 &vinc12 {
