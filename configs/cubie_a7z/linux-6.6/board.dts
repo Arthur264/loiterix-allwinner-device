@@ -13,6 +13,21 @@
 		pmu0 = &pmu0;
 		bat_supply = &bat_power_supply;
 		phy_switcher = &phy_switcher;
+		i2c3 = &i2c_gpio_cam; /* CSI connector I2C, sensor0_twi_cci_id = 3 */
+	};
+
+	/*
+	 * CSI connector I2C (PE3 SCL / PE4 SDA). The TWI3 controller times out
+	 * on this bus with the IMX415 module, so bit-bang it instead.
+	 */
+	i2c_gpio_cam: i2c-gpio-cam {
+		compatible = "i2c-gpio";
+		sda-gpios = <&pio PE 4 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		scl-gpios = <&pio PE 3 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		i2c-gpio,delay-us = <5>; /* ~100 kHz */
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "okay";
 	};
 
 	reserved-memory {
@@ -2294,7 +2309,7 @@
 	twi_drv_used = <1>;
 	no_suspend = <1>;
 	twi-supply = <&reg_bldo1>;
-	status = "okay";
+	status = "disabled"; /* PE3/PE4 used by i2c_gpio_cam */
 };
 
 &twi4 {
