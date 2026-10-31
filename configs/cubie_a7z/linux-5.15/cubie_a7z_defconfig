@@ -251,7 +251,8 @@ CONFIG_AW_FB_CONSOLE=y
 #
 # G2D Drivers
 #
-# CONFIG_AW_G2D is not set
+CONFIG_AW_G2D=y
+CONFIG_G2D_RCQ=y
 # end of G2D Drivers
 
 #

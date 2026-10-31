@@ -1741,6 +1741,10 @@
 	};
 };
 
+&g2d {
+	status = "okay";
+};
+
 &de {
 	assigned-clock-rates = <600000000>;
 	chn_cfg_mode = <2>;
