@@ -1808,15 +1808,16 @@
 };
 
 &vo1 {
-	status = "okay";
+	/* TCON-TOP for TV-out / eDP only; HDMI uses &vo0. Cubie A7Z drone has no TV/eDP. */
+	status = "disabled";
 };
 
 &tv0 {
-	status = "okay";
+	status = "disabled";
 };
 
 &tv1 {
-	status = "okay";
+	status = "disabled";
 };
 
 &hdmi0 {
@@ -1888,7 +1889,7 @@
 	edp_lane_cnt = <4>;
 	extcon = <&serdes>;
 
-	status = "okay";
+	status = "disabled";
 	ports {
 		#address-cells = <1>;
 		#size-cells = <0>;
