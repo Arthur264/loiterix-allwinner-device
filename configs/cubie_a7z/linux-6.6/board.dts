@@ -778,7 +778,7 @@
 	auto_print@54321 {
 		reg = <0x0 0x54321 0x0 0x0>;
 		device_type = "auto_print";
-		status = "okay";
+		status = "disabled";
 	};
 
 	gpio_leds {
@@ -808,11 +808,12 @@
 	status = "okay";
 };
 
+/* PG6–PG9: typical BT UART. Loiterix masks bluetooth.service; sandwich unused. */
 &uart1 {
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&uart1_pins_active>;
 	pinctrl-1 = <&uart1_pins_sleep>;
-	status = "okay";
+	status = "disabled";
 };
 
 &uart2 {
@@ -881,7 +882,7 @@
 	pinctrl-names = "active", "sleep";
 	pinctrl-0 = <&pwm1_9_pins_active>;
 	pinctrl-1 = <&pwm1_9_pins_sleep>;
-	status = "okay";
+	status = "disabled";
 };
 
 &s_pwm0_7 {
@@ -895,10 +896,11 @@
 
 	fan0: pwm-fan {
 		compatible = "pwm-fan";
-		#cooling-cells = <2>; 
+		#cooling-cells = <2>;
 		cooling-levels = <0 50 102 170 255>;
 		fan-supply = <&reg_dc1sw1>;
 		pwms = <&pwm1 9 25000 0>;
+		status = "disabled";
 	};
 };
 
@@ -2043,7 +2045,7 @@
 	key2 = <590 139>;
 	key3 = <750 28>;
 	key4 = <880 172>;
-	status = "okay";
+	status = "disabled";
 };
 
 &gpadc0 {
@@ -2057,14 +2059,14 @@
 	channel0_compare_higdata = <1200000>;
 	channel1_compare_lowdata = <460000>;
 	channel1_compare_higdata = <1200000>;
-	status = "okay";
+	status = "disabled";
 };
 
 &s_irrx {
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&s_irrx_pins_default>;
 	pinctrl-1 = <&s_irrx_pins_sleep>;
-	status = "okay";
+	status = "disabled";
 };
 
 &gpu  {
