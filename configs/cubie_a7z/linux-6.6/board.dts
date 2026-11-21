@@ -2216,7 +2216,7 @@
 	sensor0_isp_used = <1>;
 	sensor0_fmt = <1>;
 	sensor0_stby_mode = <0>;
-	sensor0_vflip = <0>;
+	sensor0_vflip = <0x01>;
 	sensor0_hflip = <0>;
 	sensor0_cameravdd-supply = <&reg_dldo3>;
 	sensor0_cameravdd_vol = <3300000>; /* RPi-style 22-pin CSI 3.3V */
