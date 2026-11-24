@@ -1810,15 +1810,17 @@
 };
 
 &vo1 {
-	/* TCON-TOP for TV-out / eDP only; HDMI uses &vo0. Cubie A7Z drone has no TV/eDP. */
-	status = "disabled";
+	/* TCON-TOP1 owns tv0 (HDMI) and tv1 (eDP). HDMI OF-graph is hdmi0 <-> tv0/tcon3. */
+	status = "okay";
 };
 
 &tv0 {
-	status = "disabled";
+	/* tcon3: required HDMI timing path (see sun60iw2p1.dtsi hdmi0_in_tcon3). */
+	status = "okay";
 };
 
 &tv1 {
+	/* tcon4: eDP only; Cubie A7Z drone has no eDP panel. */
 	status = "disabled";
 };
 
